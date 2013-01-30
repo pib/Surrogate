@@ -15,7 +15,7 @@
 
 %% --------------------------------------------------------------------
 %% External exports
--export([start_link/1,start_link/0,get_proxyconfig/0]).
+-export([start_link/0]).
 
 -export([reload/0,get/2]).
 
@@ -29,26 +29,8 @@
 %% ====================================================================
 
 start_link() ->
-	start_link(get_proxyconfig()).
-
-start_link(Config) ->
-	try
-		case file:consult(Config) of
-			{ok,Terms} ->
-				gen_server:start_link({local,?MODULE},?MODULE,#state{config_terms=Terms},[]);
-			Err ->
-				?CRITICAL("~p:start_link(~p) failed with file:consult() error: ~p~n",[?MODULE,Config,Err]),
-				error_logger:error_msg("Could not read config from ~p.~n~p~n",[Config,Err]),
-				Err
-		end
-	catch
-%% 		_:{error,{LNum,erl_parse,Msg}} ->
-%% 			error_logger:error_msg("~s on line ~p~n",[lists:flatten(Msg),LNum]),
-%% 			{config_error,Config,Msg,LNum};
-		_:CErr ->
-			error_logger:error_msg("Could not read config from ~p.~n~p~n~n~n~n",[Config,CErr]),
-			{startup_error,CErr}
-	end.
+    gen_server:start_link({local,?MODULE},?MODULE,
+                          #state{config_terms=application:get_all_env(surrogate)},[]).
 
 get(Prop,Def) ->
 	try
@@ -61,34 +43,6 @@ get(Prop,Def) ->
 
 reload() ->
 	gen_server:cast(?MODULE,reload).
-
-get_proxyconfig() ->
-	get_proxyconfig2([proxy_conf,proxy_backup_conf]).
-
-get_proxyconfig2([C|R]) ->
-	try
-		case init:get_argument(proxyconfig) of
-			{ok,[[Cfg|_]|_]} ->
-				CfgOut = string:strip(Cfg,both,$"),
-				CfgOut;
-			_ ->
-				case application:get_env(surrogate,C) of
-					{ok,Cfg} ->
-						case filelib:is_file(Cfg) of
-							true ->
-								Cfg;
-							false ->
-								get_proxyconfig2(R)
-						end;  
-					_ ->
-						get_proxyconfig2(R)
-				end
-		end
-	catch
-		_:Err ->
-			?CRITICAL("Error reading proxy config in get_proxyconfig(): ~p~n",[Err]),
-			none
-	end.
 
 %% ====================================================================
 %% Server functions
