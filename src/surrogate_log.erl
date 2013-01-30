@@ -176,7 +176,7 @@ handle_cast({access_log,Code,Url,User,Extra},State) when State#state.accesslog /
 	file:write(State#state.accesslog,Log),
 	{noreply,State};
 handle_cast({log_level,Lvl},State) ->
-	?CRITICAL("Setting log level to ~p",[Lvl]),
+	?INFO_MSG("Setting log level to ~p",[Lvl]),
 	{noreply,State#state{log_level=Lvl}};
 handle_cast(_Msg, State) ->
     {noreply, State}.
